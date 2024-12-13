@@ -48,7 +48,7 @@ struct Rocket {
 };
 
 
-float rocketSpeed = 0.004f;
+float rocketSpeed = 0.001f;
 Rocket rockets[10];
 
 bool isSpacePressed = false;
@@ -63,13 +63,13 @@ std::string helicopterStrings[5] = { "A","S","D","F","G" };
 
 float baseCenterX = 0.0f, baseCenterY = 0.0f;
 bool baseCenterSet = false;
-float baseCenterRadius = 0.07;
+float baseCenterRadius = 0.0175;
 
 bool cityCenterSet = false;
 float cityCenterX = 0.0f, cityCenterY = 0.0f;
-float cityCenterRadius = 0.017;
+float cityCenterRadius = 0.00425;
 
-float helicopterRadius = 0.03, rocketRadius = 0.03;
+float helicopterRadius = 0.0075, rocketRadius = 0.0075;
 int cityHits = 0;
 
 int selectedHel = -1;
@@ -109,7 +109,7 @@ int main(void)
 
     GLFWwindow* window;
     unsigned int wWidth = 1000;
-    unsigned int wHeight = 900;
+    unsigned int wHeight = 1000;
     const char wTitle[] = "Protiv-vazdusna odbrana Novog Sada";
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
@@ -152,12 +152,14 @@ int main(void)
     initTextRendering();
 
     float vertices[] = {
-    -1.0, -1.0,  0.0, 0.0,
-     1.0, -1.0,  1.0, 0.0,
-    -1.0,  1.0,  0.0, 1.0,
+    //x    y     s    t
+    -1.0, 0.5,  0.0, 0.0, //donji levi ugao
+     -0.5, 0.5,  1.0, 0.0, // donji desni ugao
+    -1.0,  1.0,  0.0, 1.0, // gornji levi ugao
 
-     1.0, -1.0,  1.0, 0.0,
-     1.0,  1.0,  1.0, 1.0
+     -0.5, 0.5,  1.0, 0.0, // donji desni ugao ponovljen
+     -0.5,  1.0,  1.0, 1.0, // gornji desni ugao
+     -1.0,  1.0,  0.0, 1.0, // gornji levi ugao
     };
 
     unsigned int stride = (2 + 2) * sizeof(float);
@@ -201,7 +203,7 @@ int main(void)
 
     // Opis rakete ----------------------------------------------------------------------
     float blueCircle[CRES * 2 + 4];
-    setCircle(blueCircle, 0.03, 0.0, 0.0);
+    setCircle(blueCircle, rocketRadius, 0.0, 0.0);
 
     // VAO i VBO rakete
     unsigned int VAOBlue, VBOBlue;
@@ -306,9 +308,9 @@ int main(void)
 
     float greenVertices[] = {
         -1.0f, 1.0f,
-        -1.0f, -1.0f,
-        1.0f, -1.0f,
-        1.0f, 1.0f
+        -1.0f, 0.5f,
+        -0.5f, 0.5f,
+        -0.5f, 1.0f
     };
     unsigned int greenIndices[] = {
     0, 1, 2,
@@ -626,7 +628,7 @@ int main(void)
             glUniform3f(colorLoc, redIntensity, greenIntensity, blueIntensity);
             glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle) / (2 * sizeof(float)));
 
-            renderText(textShader,helicopterStrings[i], helicopterPositions[i].x* wWidth / 2 + wWidth / 2 - 5, helicopterPositions[i].y* wHeight / 2 + wHeight / 2 - 5, 0.3, glm::vec3(0.0f, 0.0f, 0.0f));
+            renderText(textShader,helicopterStrings[i], helicopterPositions[i].x* wWidth / 2 + wWidth / 2 - 5, helicopterPositions[i].y* wHeight / 2 + wHeight / 2 - 5, 0.2, glm::vec3(0.0f, 0.0f, 0.0f));
 
             if (checkCollision(helicopterPositions[i].x, helicopterPositions[i].y, helicopterRadius, cityCenterX, cityCenterY, cityCenterRadius)) {
                 helicopterPositions[i].x = 1000.0f; // Skloni helikopter sa scene
@@ -711,7 +713,10 @@ void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
         if (!baseCenterSet) {
             baseCenterX = (float)(2.0 * mouseX / width - 1.0);
             baseCenterY = (float)(1.0 - 2.0 * mouseY / height);
-            baseCenterSet = true; // Centar je postavljen
+            if (baseCenterX >= -1 && baseCenterX <= -0.5 && baseCenterY >= 0.5 && baseCenterY <= 1.0) { // samo ako smo kliknuli u gornji levi ugao ekrana
+                baseCenterSet = true; // Centar je postavljen
+            }
+            
             std::cout << baseCenterX << " " << baseCenterY << std::endl;
         }
 
@@ -719,7 +724,10 @@ void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
         else if (!cityCenterSet) {
             cityCenterX = (float)(2.0 * mouseX / width - 1.0);
             cityCenterY = (float)(1.0 - 2.0 * mouseY / height);
-            cityCenterSet = true;  // Postavljamo da je city center postavljen
+            if (cityCenterX >= -1 && cityCenterX <= -0.5 && cityCenterY >= 0.5 && cityCenterY <= 1.0) {
+                cityCenterSet = true;  // Postavljamo da je city center postavljen
+            }
+            
         }
     }
 }
@@ -748,32 +756,24 @@ void generateHelicopterPositions(int number) {
     for (int i = 0; i < number; ++i) {
         int strana = rand() % 4;
         if (strana == 0) {
-            helicopterPositions[i].x = 1;
-            std::string randomFloat = "0.";
-            randomFloat.append(std::to_string(rand() % 10));
-            randomFloat.append(std::to_string(rand() % 10));
-            helicopterPositions[i].y = std::stof(randomFloat);
+            helicopterPositions[i].x = -0.5;
+            float random1 = ((float) (rand() % 50)) / 100 + 0.5;
+            helicopterPositions[i].y = random1;
         }
         else if (strana == 1) {
-            std::string randomFloat = "0.";
-            randomFloat.append(std::to_string(rand() % 10));
-            randomFloat.append(std::to_string(rand() % 10));
-            helicopterPositions[i].x = std::stof(randomFloat);
+            float random1 = -0.5 - ((float)(rand() % 50)) / 100;
+            helicopterPositions[i].x = random1;
             helicopterPositions[i].y = 1;
         }
         else if (strana == 2) {
             helicopterPositions[i].x = -1;
-            std::string randomFloat = "0.";
-            randomFloat.append(std::to_string(rand() % 10));
-            randomFloat.append(std::to_string(rand() % 10));
-            helicopterPositions[i].y = std::stof(randomFloat);
+            float random1 = ((float)(rand() % 50)) / 100 + 0.5;
+            helicopterPositions[i].y = random1;
         }
         else {
-            std::string randomFloat = "0.";
-            randomFloat.append(std::to_string(rand() % 10));
-            randomFloat.append(std::to_string(rand() % 10));
-            helicopterPositions[i].x = std::stof(randomFloat);
-            helicopterPositions[i].y = -1;
+            float random1 = -0.5 - ((float)(rand() % 50)) / 100;
+            helicopterPositions[i].x = random1;
+            helicopterPositions[i].y = 0.5;
         }
     }
 }
