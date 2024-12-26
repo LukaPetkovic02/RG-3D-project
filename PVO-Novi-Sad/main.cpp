@@ -544,7 +544,8 @@ int main(void)
         glClearColor(0.1, 0.1, 0.10023082, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        
+        //ISCRTAVANJE GLAVNOG DELA EKRANA
+        glViewport(0, 0, wWidth, wHeight);
         
         model = mat4(1.0);
         glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
@@ -878,7 +879,7 @@ int main(void)
             renderText(textShader, "IZGUBILI STE", 200, 450, 1.5, vec3(1.0f, 0.0f, 0.0f));
             countTo3++;
             if (countTo3 >= 4) {// Zatvori aplikaciju
-                std::exit(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
             }
 
         }
@@ -888,7 +889,7 @@ int main(void)
             renderText(textShader, "ODBRANA JE USPJESNA!", 50, 450, 1.5, vec3(1.0f, 0.0f, 0.0f));
             countTo3++;
             if (countTo3 >= 4) {// Zatvori aplikaciju
-                std::exit(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
             }
         }
         glDisable(GL_BLEND);
@@ -902,6 +903,35 @@ int main(void)
         glUseProgram(baseShader);
         glUniform3f(lightPosLoc, reflectorX, -3.0f, reflectorZ);
 
+
+        //ISCRTAVANJE KAMERE RAKETE
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glViewport(wWidth*0.75, wHeight * 0.75, wWidth / 4, wHeight / 4);
+
+        model = mat4(1.0);
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+
+        glUseProgram(textureShader);
+        model[0] *= -1;
+        glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+        glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(view));
+        glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, value_ptr(projection));
+        glBindVertexArray(VAO[0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mapTexture);
+
+        if (!isMapHidden)
+        {
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 5);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+
+
+        ///////////////////////////////////////////////////////////
         glfwSwapBuffers(window);
         glfwPollEvents();
         auto frameEnd = chrono::high_resolution_clock::now();
