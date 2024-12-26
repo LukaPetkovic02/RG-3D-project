@@ -80,6 +80,11 @@ vec3 cameraPos(CAMERA_X_LOC, CAMERA_Y_LOC, CAMERA_Z_LOC); // Pozicija kamere
 vec3 cameraTarget(-0.42f, 0.0f, 0.08f);                  // Tacka prema kojoj kamera gleda
 vec3 cameraUp(0.0f, 1.0f, 0.0f);
 
+vec3 rocketCameraPos(0.3f, 0.7f, -0.9f);
+vec3 rocketCameraTarget(-0.3f, 0.0f, 0.08f);
+vec3 rocketCameraUp(0.0f, 1.0f, 0.0f);
+
+
 bool rotateLeft = false; // Da li kamera rotira ulevo (J)
 bool rotateRight = false; // Da li kamera rotira udesno (L)
 bool zoomIn = false, zoomOut = false;
@@ -129,6 +134,7 @@ bool alreadyPlacedCity = false;
 int cityHits = 0;
 int countTo3 = 0;
 
+bool activeRocketCam = false;
 int main(void)
 {
     float reflectorRadius = 3.0f;
@@ -211,6 +217,17 @@ int main(void)
          -1.0,  0.5,     0.0, 1.0, 
          -0.5,   1.0,     1.0, 0.0,
          -1.0,   1.0,     0.0, 0.0
+    };
+
+    float noiseVertices[] = {
+        // X     Y         S    T  
+         0.5,  0.5,     0.0, 1.0,
+         1.0,  0.5,     1.0, 1.0,
+         1.0,   1.0,     1.0, 0.0,
+
+         0.5,  0.5,     0.0, 1.0,
+         1.0,   1.0,     1.0, 0.0,
+         0.5,   1.0,     0.0, 0.0
     };
     // ********************************************** 2D OPISI ********************************************
 
@@ -331,6 +348,36 @@ int main(void)
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    // Tekstura suma ------------------------------------------------------------
+
+    unsigned noise2DTexture = loadImageToTexture("res/noise.png");
+
+    unsigned int noise2DVAO;
+    unsigned int noise2DVBO;
+
+    glGenVertexArrays(1, &noise2DVAO);
+    glGenBuffers(1, &noise2DVBO);
+
+    glBindVertexArray(noise2DVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, noise2DVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(noiseVertices), noiseVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, map2DStride, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, map2DStride, (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    glBindTexture(GL_TEXTURE_2D, noise2DTexture);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+
+
+
+
     // VAO i VBO teksture -------------------------------------------------------------   
     unsigned int VAO[2];
     glGenVertexArrays(2, VAO);
@@ -390,6 +437,9 @@ int main(void)
 
     mat4 view; //Matrica pogleda (kamere)
     view = lookAt(cameraPos, cameraTarget, cameraUp); //2. vektor 0.0,0.0,0.0
+
+    mat4 rocketView;
+    rocketView = lookAt(rocketCameraPos, rocketCameraTarget, rocketCameraUp);
     unsigned int viewLocTex = glGetUniformLocation(textureShader, "uV");
     unsigned int viewLocRocket = glGetUniformLocation(rocketShader, "uV");
     unsigned int viewLocBase = glGetUniformLocation(baseShader, "uV");
@@ -598,6 +648,7 @@ int main(void)
                 initWait = true;
             }
             moveHelicoptersTowardsCityCenter(cityCenterX, cityCenterY, cityCenterZ, helicopterSpeed);
+            activeRocketCam = true;
         }
 
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !isSpacePressed) {
@@ -776,6 +827,17 @@ int main(void)
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
         glBindTexture(GL_TEXTURE_2D, 0);
+
+        if (!activeRocketCam) {
+            glUseProgram(map2DShader);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, noise2DTexture);
+            glBindVertexArray(noise2DVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindVertexArray(0);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        
         glUseProgram(baseShader);
 
 
@@ -905,30 +967,39 @@ int main(void)
 
 
         //ISCRTAVANJE KAMERE RAKETE
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glViewport(wWidth*0.75, wHeight * 0.75, wWidth / 4, wHeight / 4);
+        
+        if (activeRocketCam) {
+            glDisable(GL_DEPTH_TEST);
+            glEnable(GL_BLEND);
+            glViewport(wWidth * 0.75, wHeight * 0.75, wWidth / 4, wHeight / 4);
 
-        model = mat4(1.0);
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+            model = mat4(1.0);
+            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
 
-        glUseProgram(textureShader);
-        model[0] *= -1;
-        glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-        glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(view));
-        glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, value_ptr(projection));
-        glBindVertexArray(VAO[0]);
+            glUseProgram(textureShader);
+            model[0] *= -1;
+            glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+            glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(rocketView));
+            glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, value_ptr(projection));
+            glBindVertexArray(VAO[0]);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, mapTexture);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, mapTexture);
 
-        if (!isMapHidden)
-        {
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 5);
+            if (!isMapHidden)
+            {
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 5);
+            }
+            glBindTexture(GL_TEXTURE_2D, 0);
+
+
+            glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(rocketView));
+            rocketView = lookAt(rocketCameraPos, rocketCameraTarget, rocketCameraUp);
+
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
         }
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glDisable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
+        
 
 
         ///////////////////////////////////////////////////////////
