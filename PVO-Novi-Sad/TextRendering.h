@@ -21,3 +21,4 @@ void renderText(unsigned int shader, const std::string& text, float x, float y, 
 
 #endif // TEXT_RENDERING_H
 
+

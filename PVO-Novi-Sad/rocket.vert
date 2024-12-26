@@ -1,10 +1,13 @@
 #version 330 core
 
-layout (location = 0) in vec2 aPosition;
+layout (location = 0) in vec3 aPosition;
 
 uniform vec2 uTranslation;
+uniform mat4 uM;
+uniform mat4 uP;
+uniform mat4 uV;
 
 void main()
 {
-    gl_Position = vec4(aPosition + uTranslation, 0.0, 1.0);
+    gl_Position = uP * uV * uM * vec4(aPosition.x + uTranslation.x, aPosition.y + 0.2, aPosition.z + uTranslation.y, 1.0); // Stavila sam da se na y doda 0.2 zbog niskoletnih meta
 }
