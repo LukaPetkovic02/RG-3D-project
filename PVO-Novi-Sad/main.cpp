@@ -46,7 +46,8 @@ struct ModelData {
     vector<vec2> textureCoords;
     vector<vec3> normals;
 };
-
+void switchToNextRocket();
+void switchToPreviousRocket();
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 float Xto2D(float a);
 float Yto2D(float a);
@@ -134,7 +135,10 @@ bool alreadyPlacedCity = false;
 int cityHits = 0;
 int countTo3 = 0;
 
-bool activeRocketCam = false;
+bool activeRocketCam = true;
+int activeRocketIndex = -1;
+bool isLeftPressed = false, isRightPressed = false;
+
 int main(void)
 {
     float reflectorRadius = 3.0f;
@@ -682,12 +686,28 @@ int main(void)
                 rockets[rocketsLeft].dirY = targetY - baseCenterY;
                 rockets[rocketsLeft].dirZ = targetZ - baseCenterZ;
                 normalizeVector(rockets[rocketsLeft].dirX, rockets[rocketsLeft].dirY, rockets[rocketsLeft].dirZ);
-
+                if (activeRocketIndex == -1) {
+                    activeRocketIndex = rocketsLeft;
+                }
             }
             isSpacePressed = true;
         }
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE) {
             isSpacePressed = false;
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS && !isLeftPressed) {
+            isLeftPressed = true;
+            switchToPreviousRocket();
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_RELEASE) {
+            isLeftPressed = false;
+        }
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS && !isRightPressed) {
+            isRightPressed = true;
+            switchToNextRocket();
+        }
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_RELEASE) {
+            isRightPressed = false;
         }
         for (int i = 0; i < 10; ++i) {
             if (rockets[i].isFlying) {
@@ -733,13 +753,19 @@ int main(void)
                         }
                         rockets[i].isFlying = false; // Završava let rakete
                         rockets[i].targetHelicopter = -1; // Resetuj metu
+                        if (i == activeRocketIndex) {
+                            activeRocketIndex = -1;
+                        }
                         for (int j = 0; j < 10; j++) { // unistavamo sve ostale rakete koje su ciljale isti taj helikopter
                             if (rockets[j].isFlying && rockets[j].targetHelicopter == targetHel) {
                                 rockets[j].x = 1000.0;
                                 rockets[j].y = 1000.0; // sklanjamo raketu sa scene
                                 rockets[j].z = 1000.0;
                                 rockets[j].isFlying = false; // Završava let rakete
-                                rockets[j].targetHelicopter = -1; // Resetuj metu                                
+                                rockets[j].targetHelicopter = -1; // Resetuj metu   
+                                if (j == activeRocketIndex) {
+                                    activeRocketIndex = -1;
+                                }
                             }
                         }
                         
@@ -752,6 +778,9 @@ int main(void)
                         rockets[i].z = 1000.0;
                         rockets[i].isFlying = false; // Završava let rakete
                         rockets[i].targetHelicopter = -1; // Resetuj metu
+                        if (i == activeRocketIndex) {
+                            activeRocketIndex = -1;
+                        }
                     }
                 }
                 
@@ -840,7 +869,7 @@ int main(void)
         glBindVertexArray(0);
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        if (!activeRocketCam) {
+        if (activeRocketIndex==-1) {
             glUseProgram(map2DShader);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, noise2DTexture);
@@ -980,7 +1009,7 @@ int main(void)
 
         //ISCRTAVANJE KAMERE RAKETE
         
-        if (activeRocketCam) {
+        if (activeRocketIndex!=-1) {
             glDisable(GL_DEPTH_TEST);
             glEnable(GL_BLEND);
             glViewport(wWidth * 0.75, wHeight * 0.75, wWidth / 4, wHeight / 4);
@@ -1011,7 +1040,7 @@ int main(void)
             renderClouds(baseShader, cloudVAO, hasTexture2, colorLoc, modelLocBase, cloud);
 
 
-            // Renderovanje helikoptera --------------------------------------------------------------------------
+            // Renderovanje helikoptera rocket cam --------------------------------------------------------------------------
             glUseProgram(baseShader);
 
             for (int i = 0; i < HELICOPTER_NUM; ++i) {
@@ -1027,10 +1056,35 @@ int main(void)
 
                 glBindVertexArray(0);
             }
+            // Renderovanje raketa rocket cam --------------------------------------------------------------------------------
+            for (int i = 0; i < 10; ++i) {
+                if (rockets[i].isFlying) {
+                    //cout << i << endl;
+                    glBindVertexArray(rocketVAO);
+                    mat4 model3D = mat4(1.0f);
 
+                    model3D = translate(model3D, vec3(rockets[i].x, rockets[i].y, rockets[i].z));
+
+                    //model3D = rotate(model3D, (float)radians(90.0f), vec3(1.0, 0.0, 0.0));
+                    model3D = scale(model3D, vec3(0.05f));
+                    glUniform3f(colorLoc, 1.0, 0.0, 0.0);
+                    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3D));
+                    glDrawArrays(GL_TRIANGLES, 0, rocket.vertices.size());
+                    glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(mat4(1.0f)));
+                    glBindVertexArray(0);
+                    if (i == activeRocketIndex) {
+                        rocketCameraPos = vec3(rockets[i].x, rockets[i].y, rockets[i].z);
+                        rocketCameraTarget = vec3(helicopterPositions[rockets[i].targetHelicopter].x, helicopterPositions[rockets[i].targetHelicopter].y, helicopterPositions[rockets[i].targetHelicopter].z);
+                    }
+                    
+                }
+            }
 
             if (baseCenterSet) {
                 renderBase(baseShader, baseVAO, colorLoc, modelLocBase, base, vec3(baseCenterX, 0.0, baseCenterZ), 1.0);
+            }
+            if (cityCenterSet) {
+                renderBase(baseShader, baseVAO, colorLoc, modelLocBase, base, vec3(cityCenterX, cityCenterY, cityCenterZ), 0.5);
             }
 
             glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(rocketView));
@@ -1082,7 +1136,17 @@ int main(void)
     glfwTerminate();
     return 0;
 }
+void switchToNextRocket() {
+    do {
+        activeRocketIndex = (activeRocketIndex + 1) % 10;
+    } while (!rockets[activeRocketIndex].isFlying); // Preskoči neaktivne rakete
+}
 
+void switchToPreviousRocket() {
+    do {
+        activeRocketIndex = (activeRocketIndex - 1 + 10) % 10;
+    } while (!rockets[activeRocketIndex].isFlying); // Preskoči neaktivne rakete
+}
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_L)
