@@ -446,6 +446,7 @@ int main(void)
 
     //promenio sa 90 na 45 stepeni
     mat4 projection = perspective(radians(45.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
+    mat4 projectionRocket = perspective(radians(40.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f);
     unsigned int projectionLocTex = glGetUniformLocation(textureShader, "uP");
     unsigned int projectionLocRocket = glGetUniformLocation(rocketShader, "uP");
     unsigned int projectionLocBase = glGetUniformLocation(baseShader, "uP");
@@ -538,27 +539,33 @@ int main(void)
         }
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         {
+            cameraPos = vec3(baseCenterX, 0.4, baseCenterZ);
             selectHelicopter(0);
         }
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         {
+            cameraPos = vec3(baseCenterX, 0.4, baseCenterZ);
             selectHelicopter(1);
         }
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         {
+            cameraPos = vec3(baseCenterX, 0.4, baseCenterZ);
             selectHelicopter(2);
         }
 
         if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
         {
+            cameraPos = vec3(baseCenterX, 0.4, baseCenterZ);
             selectHelicopter(3);
         }
         if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
         {
+            cameraPos = vec3(baseCenterX, 0.4, baseCenterZ);
             selectHelicopter(4);
         }
         if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
         {
+            cameraPos = vec3(baseCenterX, 0.4, baseCenterZ);
             cameraTarget = vec3(cityCenterX, cityCenterY, cityCenterZ);
             helTracked = -1;
         }
@@ -578,10 +585,12 @@ int main(void)
         if (zoomIn) {
             vec3 zoomDirection = normalize(cameraTarget - cameraPos);
             cameraPos += zoomDirection * zoomSpeed;
+            //rocketCameraPos += zoomDirection * zoomSpeed;//NA KRAJU ZAKOMENTARISI
         }
         else if (zoomOut) {
             vec3 zoomDirection = normalize(cameraTarget - cameraPos);
             cameraPos -= zoomDirection * zoomSpeed;
+            //rocketCameraPos -= zoomDirection * zoomSpeed;//NA KRAJU ZAKOMENTARISI
         }
         vec3 direction = cameraTarget - cameraPos;
         mat4 rotationMatrix = rotate(mat4(1.0f), cameraAngle, vec3(0.0f, 1.0f, 0.0f));
@@ -616,11 +625,18 @@ int main(void)
         }
         glBindTexture(GL_TEXTURE_2D, 0);
 
+        glUseProgram(baseShader);
+
+        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+        glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
+        glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projection));
+
         //// Renderovanje baze 3D------------------------------------------------------------------------------------
         if (baseCenterSet) {
             if (!changedCameraPos) {
                 cameraPos = vec3(baseCenterX, 0.4, baseCenterZ);
                 changedCameraPos = true;
+                cout << baseCenterX << " " << baseCenterZ << endl;
             }
             renderBase(baseShader, baseVAO, colorLoc, modelLocBase, base, vec3(baseCenterX, 0.0, baseCenterZ), 1.0);
         }
@@ -630,10 +646,6 @@ int main(void)
         glCullFace(GL_BACK);
 
         glUseProgram(baseShader);
-
-        glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-        glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(view));
-        glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projection));
 
 
         // Renderovanje centra Novog Sada ------------------------------------------------------------------------
@@ -973,14 +985,16 @@ int main(void)
             glEnable(GL_BLEND);
             glViewport(wWidth * 0.75, wHeight * 0.75, wWidth / 4, wHeight / 4);
 
-            model = mat4(1.0);
-            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model));
+            mat4 modelRocket = mat4(1.0);
+            glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelRocket));
+            glUniformMatrix4fv(viewLocBase, 1, GL_FALSE, value_ptr(rocketView));
+            glUniformMatrix4fv(projectionLocBase, 1, GL_FALSE, value_ptr(projectionRocket));
 
             glUseProgram(textureShader);
-            model[0] *= -1;
-            glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, value_ptr(model)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
+            modelRocket[0] *= -1;
+            glUniformMatrix4fv(modelLocTex, 1, GL_FALSE, value_ptr(modelRocket)); // (Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
             glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(rocketView));
-            glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, value_ptr(projection));
+            glUniformMatrix4fv(projectionLocTex, 1, GL_FALSE, value_ptr(projectionRocket));
             glBindVertexArray(VAO[0]);
 
             glActiveTexture(GL_TEXTURE0);
@@ -992,6 +1006,32 @@ int main(void)
             }
             glBindTexture(GL_TEXTURE_2D, 0);
 
+            renderMountain(baseShader, mountainVAO, mapTexture, modelRocket, modelLocBase, mountain);
+
+            renderClouds(baseShader, cloudVAO, hasTexture2, colorLoc, modelLocBase, cloud);
+
+
+            // Renderovanje helikoptera --------------------------------------------------------------------------
+            glUseProgram(baseShader);
+
+            for (int i = 0; i < HELICOPTER_NUM; ++i) {
+                glBindVertexArray(helicopterVAO);
+
+                mat4 modelH = mat4(1.0f);
+                modelH = translate(modelH, vec3(helicopterPositions[i].x, helicopterPositions[i].y, helicopterPositions[i].z));
+                modelH = scale(modelH, vec3(0.01));
+
+                glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelH));
+                glUniform3f(colorLoc, 0.1, 0.4, 0.1);
+                glDrawArrays(GL_TRIANGLES, 0, helicopter.vertices.size());
+
+                glBindVertexArray(0);
+            }
+
+
+            if (baseCenterSet) {
+                renderBase(baseShader, baseVAO, colorLoc, modelLocBase, base, vec3(baseCenterX, 0.0, baseCenterZ), 1.0);
+            }
 
             glUniformMatrix4fv(viewLocTex, 1, GL_FALSE, value_ptr(rocketView));
             rocketView = lookAt(rocketCameraPos, rocketCameraTarget, rocketCameraUp);
