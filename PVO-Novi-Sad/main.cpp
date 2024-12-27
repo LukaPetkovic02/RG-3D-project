@@ -962,7 +962,13 @@ int main(void)
                 GLint translationLoc = glGetUniformLocation(rocket2DShader, "uTranslation");
                 glUniform2f(translationLoc, Xto2D(-rockets[i].x), Yto2D(rockets[i].z));
                 colorLoc = glGetUniformLocation(rocket2DShader, "color");
-                glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f);
+                if (i == activeRocketIndex) {
+                    glUniform3f(colorLoc, 1.0f, 0.84f, 0.0f); // Zlatna
+                }
+                else {
+                    glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f);
+                }
+                
                 glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(blueCircle2D) / (2 * sizeof(float)));
             }
         }
@@ -1137,14 +1143,24 @@ int main(void)
     return 0;
 }
 void switchToNextRocket() {
+    int count = 0;
     do {
         activeRocketIndex = (activeRocketIndex + 1) % 10;
+        count++;
+        if (count > 10) { // ako je 10 puta proverio znaci da nijedna raketa ne leti
+            break;
+        }
     } while (!rockets[activeRocketIndex].isFlying); // Preskoči neaktivne rakete
 }
 
 void switchToPreviousRocket() {
+    int count = 0;
     do {
         activeRocketIndex = (activeRocketIndex - 1 + 10) % 10;
+        count++;
+        if (count > 10) {
+            break;
+        }
     } while (!rockets[activeRocketIndex].isFlying); // Preskoči neaktivne rakete
 }
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
