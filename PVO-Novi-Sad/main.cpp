@@ -963,7 +963,7 @@ int main(void)
                 glUniform2f(translationLoc, Xto2D(-rockets[i].x), Yto2D(rockets[i].z));
                 colorLoc = glGetUniformLocation(rocket2DShader, "color");
                 if (i == activeRocketIndex) {
-                    glUniform3f(colorLoc, 1.0f, 0.84f, 0.0f); // Zlatna
+                    glUniform3f(colorLoc, 1.0f, 0.5f, 0.0f); // Narandzasta
                 }
                 else {
                     glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f);
