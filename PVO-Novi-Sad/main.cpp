@@ -57,7 +57,6 @@ bool checkCollision(float x1, float y1, float z1, float x2, float y2, float z2);
 void mouseCallback(GLFWwindow* window, int button, int action, int mods);
 void setCircle(float  circle[64], float r, float xPomeraj, float yPomeraj);
 static unsigned loadImageToTexture(const char* filePath);
-void moveRocket(GLFWwindow* window, float& rocketX, float& rocketY, float rocketSpeed, unsigned int wWidth, unsigned int wHeight);
 void generateHelicopterPositions(int number);
 void moveHelicoptersTowardsCityCenter(float cityCenterX, float cityCenterY, float cityCenterZ, float speed);
 bool isRocketOutsideScreen(float rocketX, float rocketY);
@@ -204,12 +203,12 @@ int main(void)
 
     float vertices[] = {
    // X     Y      Z       S    T  
-    -1.0, -0.01, -1.0,    0.0, 0.0,   0.0, 1.0, 0.0,
-     1.0, -0.01, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
-    -1.0, -0.01,  1.0,    0.0, 1.0,   0.0, 1.0, 0.0,
+    -1.0, 0.0, -1.0,    0.0, 0.0,   0.0, 1.0, 0.0,
+     1.0, 0.0, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
+    -1.0, 0.0,  1.0,    0.0, 1.0,   0.0, 1.0, 0.0,
 
-     1.0, -0.01, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
-     1.0, -0.01,  1.0,    1.0, 1.0,   0.0, 1.0, 0.0
+     1.0, 0.0, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
+     1.0, 0.0,  1.0,    1.0, 1.0,   0.0, 1.0, 0.0
     };
 
     float map2DVertices[] = {
@@ -514,6 +513,7 @@ int main(void)
     
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
     glCullFace(GL_BACK);
 
     glfwSetKeyCallback(window, keyCallback);
@@ -606,6 +606,7 @@ int main(void)
 
         glClearColor(0.1, 0.1, 0.10023082, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDepthFunc(GL_LESS);
 
         //ISCRTAVANJE GLAVNOG DELA EKRANA
         glViewport(0, 0, wWidth, wHeight);
@@ -1395,30 +1396,6 @@ void generateHelicopterPositions(int number) {
 bool isRocketOutsideScreen(float rocketX, float rocketY)
 {
     return (rocketX < -1.0f || rocketX > 1.0f || rocketY < -1.0f || rocketY > 1.0f);
-}
-
-void moveRocket(GLFWwindow* window, float& rocketX, float& rocketY, float rocketSpeed, unsigned int wWidth, unsigned int wHeight)
-{
-    int windowWidth, windowHeight;
-    glfwGetWindowSize(window, &windowWidth, &windowHeight);
-
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-    {
-        rocketY += rocketSpeed;
-        // Bilo nekad: rocketY = fmax(-1.0f, fmin(rocketY + rocketSpeed, 1.0f)); itd.
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    {
-        rocketY -= rocketSpeed;
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    {
-        rocketX -= rocketSpeed;
-    }
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-    {
-        rocketX += rocketSpeed;
-    }
 }
 
 void setCircle(float  circle[64], float r, float xPomeraj, float yPomeraj) {
