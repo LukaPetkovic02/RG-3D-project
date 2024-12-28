@@ -196,19 +196,19 @@ int main(void)
     unsigned int rocketShader = createShader("rocket.vert", "rocket.frag");
     unsigned int map2DShader = createShader("map_2d.vert", "map_2d.frag");
     unsigned int textShader = createShader("text.vert", "text.frag");
-    loadFont("fonts/ariali.ttf");
+    loadFont("fonts/arial.ttf");
     initTextRendering();
 
     int colorLoc = glGetUniformLocation(textureShader, "color");
 
     float vertices[] = {
    // X     Y      Z       S    T  
-    -1.0, 0.0, -1.0,    0.0, 0.0,   0.0, 1.0, 0.0,
-     1.0, 0.0, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
-    -1.0, 0.0,  1.0,    0.0, 1.0,   0.0, 1.0, 0.0,
+    -1.0, -0.01, -1.0,    0.0, 0.0,   0.0, 1.0, 0.0,
+     1.0, -0.01, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
+    -1.0, -0.01,  1.0,    0.0, 1.0,   0.0, 1.0, 0.0,
 
-     1.0, 0.0, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
-     1.0, 0.0,  1.0,    1.0, 1.0,   0.0, 1.0, 0.0
+     1.0, -0.01, -1.0,    1.0, 0.0,   0.0, 1.0, 0.0,
+     1.0, -0.01,  1.0,    1.0, 1.0,   0.0, 1.0, 0.0
     };
 
     float map2DVertices[] = {
@@ -1002,6 +1002,11 @@ int main(void)
                 exit(EXIT_FAILURE);
             }
         }
+        for (int i = 760; i <= 1000; i += 20) {
+            renderText(textShader, "|", 742, i, 1.0, vec3(1.0, 0.0, 0.0));
+            //
+        }
+        renderText(textShader, "___________________", 748, 759, 1.0, vec3(1.0, 0.0, 0.0));
         glDisable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
 
