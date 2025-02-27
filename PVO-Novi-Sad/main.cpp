@@ -817,6 +817,10 @@ int main(void)
         // Renderovanje helikoptera --------------------------------------------------------------------------
         glUseProgram(baseShader);
 
+        glm::vec3 lightColor = glm::vec3(1.0f, 0.0f, 0.0f); // Crvena boja
+        //float lightIntensity = 1.0f; // Intenzitet svetla
+        //float lightCutoff = 0.7f; // Domet svetla
+
         for (int i = 0; i < HELICOPTER_NUM; ++i) {
             if (helTracked == i) {
                 cameraTarget = vec3(helicopterPositions[i].x, helicopterPositions[i].y, helicopterPositions[i].z);
@@ -830,6 +834,18 @@ int main(void)
             glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(modelH));
             glUniform3f(colorLoc, 0.1, 0.4, 0.1);
             glDrawArrays(GL_TRIANGLES, 0, helicopter.vertices.size());
+
+            vec3 helicopterPosition = glm::vec3(helicopterPositions[i].x, helicopterPositions[i].y, helicopterPositions[i].z);
+            // Postavljanje uniformi za tačkasto svjetlo helikoptera
+            string lightPosUniform = "uHelicopterLights[" + std::to_string(i) + "].pos";
+            string lightColorUniform = "uHelicopterLights[" + std::to_string(i) + "].color";
+            string lightIntensityUniform = "uHelicopterLights[" + std::to_string(i) + "].intensity";
+            string lightCutoffUniform = "uHelicopterLights[" + std::to_string(i) + "].cutoff";
+
+            glUniform3fv(glGetUniformLocation(baseShader, lightPosUniform.c_str()), 1, &helicopterPosition[0]);
+            glUniform3fv(glGetUniformLocation(baseShader, lightColorUniform.c_str()), 1, &lightColor[0]);
+            glUniform1f(glGetUniformLocation(baseShader, lightIntensityUniform.c_str()), 1.0f);
+            glUniform1f(glGetUniformLocation(baseShader, lightCutoffUniform.c_str()), 0.7f);
 
             glBindVertexArray(0);
             if (checkCollision(helicopterPositions[i].x, helicopterPositions[i].y, helicopterPositions[i].z, cityCenterX, cityCenterY, cityCenterZ)) {

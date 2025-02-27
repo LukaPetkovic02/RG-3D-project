@@ -16,6 +16,13 @@ struct Light {
     vec3 kS;      
 };
 
+struct PointLight {
+    vec3 pos;
+    vec3 color;
+    float intensity;
+    float cutoff;
+};
+
 
 in vec3 chFragPos;
 in vec3 chNor;
@@ -27,6 +34,7 @@ uniform float uAlpha;
 uniform sampler2D uTex;
 
 uniform Light uReflector;
+uniform PointLight uHelicopterLights[5];
 
 uniform Material uMaterial;
 uniform vec3 uViewPos;
@@ -66,5 +74,34 @@ void main()
 //        outCol = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 //        return;
 //    }
-    outCol = vec4(color * (resA + finalColor + finalColorReflector), 1.0 - uAlpha);
+
+    // Tackasto svjetlo helikoptera
+//    vec3 lightDirHeli = normalize(uHelicopterLight.pos - chFragPos);
+//    float distanceToLight = length(uHelicopterLight.pos - chFragPos);
+//    float attenuation = 1.0 / (1.0 + distanceToLight * uHelicopterLight.intensity);
+//    float nDHeli = max(dot(normal, lightDirHeli), 0.0);
+//    vec3 resDHeli = attenuation * uHelicopterLight.color * (nDHeli * uMaterial.kD);
+//    vec3 reflectDirHeli = reflect(-lightDirHeli, normal);
+//    float specularHeli = pow(max(dot(viewDirection, reflectDirHeli), 0.0), uMaterial.shine);
+//    vec3 resSHeli = attenuation * uHelicopterLight.color * (specularHeli * uMaterial.kS);
+//
+//    vec3 finalColorHeli = resDHeli + resSHeli;
+
+    vec3 finalColorHeli = vec3(0.0);
+    for (int i = 0; i < 5; i++) {
+        if (uHelicopterLights[i].intensity > 0.0) { // Provera da li je svjetlo aktivno
+            vec3 lightDirHeli = normalize(uHelicopterLights[i].pos - chFragPos);
+            float distanceToLight = length(uHelicopterLights[i].pos - chFragPos);
+            float attenuation = 1.0 / (1.0 + distanceToLight * uHelicopterLights[i].intensity);
+            float nDHeli = max(dot(normal, lightDirHeli), 0.0);
+            vec3 resDHeli = attenuation * uHelicopterLights[i].color * (nDHeli * uMaterial.kD);
+            vec3 reflectDirHeli = reflect(-lightDirHeli, normal);
+            float specularHeli = pow(max(dot(viewDirection, reflectDirHeli), 0.0), uMaterial.shine);
+            vec3 resSHeli = attenuation * uHelicopterLights[i].color * (specularHeli * uMaterial.kS);
+
+            finalColorHeli += resDHeli + resSHeli;
+        }
+    }
+
+    outCol = vec4(color * (resA + finalColor + finalColorReflector + finalColorHeli), 1.0 - uAlpha);
 }
