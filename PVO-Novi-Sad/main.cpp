@@ -817,7 +817,7 @@ int main(void)
         // Renderovanje helikoptera --------------------------------------------------------------------------
         glUseProgram(baseShader);
 
-        glm::vec3 lightColor = glm::vec3(1.0f, 0.0f, 0.0f); // Crvena boja
+        glm::vec3 lightColor = glm::vec3(0.0f, 1.0f, 0.0f); // Zelena boja
         //float lightIntensity = 1.0f; // Intenzitet svetla
         //float lightCutoff = 0.7f; // Domet svetla
 
