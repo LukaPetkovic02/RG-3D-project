@@ -90,6 +90,7 @@ void main()
     vec3 finalColorHeli = vec3(0.0);
     for (int i = 0; i < 5; i++) {
         if (uHelicopterLights[i].intensity > 0.0) { // Provera da li je svjetlo aktivno
+            
             vec3 lightDirHeli = normalize(uHelicopterLights[i].pos - chFragPos);
             float distanceToLight = length(uHelicopterLights[i].pos - chFragPos);
             float attenuation = 1.0 / (1.0 + distanceToLight * uHelicopterLights[i].intensity);
@@ -98,7 +99,9 @@ void main()
             vec3 reflectDirHeli = reflect(-lightDirHeli, normal);
             float specularHeli = pow(max(dot(viewDirection, reflectDirHeli), 0.0), uMaterial.shine);
             vec3 resSHeli = attenuation * uHelicopterLights[i].color * (specularHeli * uMaterial.kS);
-
+            if(distanceToLight > 2.0){
+                continue;
+            }
             finalColorHeli += resDHeli + resSHeli;
         }
     }

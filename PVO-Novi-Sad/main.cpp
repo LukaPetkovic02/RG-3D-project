@@ -31,7 +31,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-// Za koptere
 #include <ctime>
 #include <random>
 #include <chrono>
@@ -138,12 +137,12 @@ bool activeRocketCam = true;
 int activeRocketIndex = -1;
 bool isLeftPressed = false, isRightPressed = false;
 
+float reflectorRadius = 3.0f;
+float reflectorSpeed = 0.0001f;
+float reflectorAngle = 0.5f;
+
 int main(void)
 {
-    float reflectorRadius = 3.0f;
-    float reflectorSpeed = 0.0001f;
-    float reflectorAngle = 0.5f;
-
     if (!glfwInit())
     {
         cout << "Greska pri ucitavanju GLFW biblioteke!\n";
@@ -283,40 +282,32 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    // ****************************************************************************************************
-
     // ********************************************** MODELI **********************************************
     // 
     // Planina --------------------------------------------------------------
     ModelData mountain = loadModel("res/mountain/Mountain.obj");
     unsigned int mountainVAO, mountainVBO;
     setupModelVAO(mountainVAO, mountainVBO, mountain);
-    //cout << "PLANINA:" << mountain.vertices.size() << " " << mountain.normals.size() << " " << mountain.textureCoords.size() << endl;
 
     // Raketa -----------------------------------------------------------------
     ModelData rocket = loadModel("res/rocket/rocket.obj");
     unsigned int rocketVAO, rocketVBO;
     setupModelVAO(rocketVAO, rocketVBO, rocket);
-    //cout << "RAKETA:" << rocket.vertices.size() << " " << rocket.normals.size() << " " << rocket.textureCoords.size() << endl;
 
     // Oblak ----------------------------------------------------------------
     ModelData cloud = loadModel("res/clouds/Cloud1.obj");//clouds/Cloud.obj
     unsigned int cloudVAO, cloudVBO;
     setupModelVAO(cloudVAO, cloudVBO, cloud);
-    //cout << "OBLAK:" << cloud.vertices.size() << " " << cloud.normals.size() << " " << cloud.textureCoords.size() << endl;
 
     // Baza -----------------------------------------------------------------
     ModelData base = loadModel("res/base/Base.obj");
     unsigned int baseVAO, baseVBO;
     setupModelVAO(baseVAO, baseVBO, base);
-    //cout << "BAZA:" << base.vertices.size() << " " << base.normals.size() << " " << base.textureCoords.size() << endl;
-
 
     // Helikopter -----------------------------------------------------------
     ModelData helicopter = loadModel("res/helicopter/Helicopter.obj");
     unsigned int helicopterVAO, helicopterVBO;
     setupModelVAO(helicopterVAO, helicopterVBO, helicopter);
-    //cout << "Helikopter:" << helicopter.vertices.size() << " " << helicopter.normals.size() << " " << helicopter.textureCoords.size() << endl;
 
     // *****************************************************************************************************
 
@@ -432,7 +423,7 @@ int main(void)
     glBindVertexArray(0);
 
 
-    mat4 model = mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
+    mat4 model = mat4(1.0f); //Matrica transformacija - jedinicna matrica
     unsigned int modelLocTex = glGetUniformLocation(textureShader, "uM");
     unsigned int modelLocRocket = glGetUniformLocation(rocketShader, "uM");
     unsigned int modelLocBase = glGetUniformLocation(baseShader, "uM");
@@ -447,7 +438,6 @@ int main(void)
     unsigned int viewLocRocket = glGetUniformLocation(rocketShader, "uV");
     unsigned int viewLocBase = glGetUniformLocation(baseShader, "uV");
 
-    //promenio sa 90 na 45 stepeni
     mat4 projection = perspective(radians(45.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
     mat4 projectionRocket = perspective(radians(40.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f);
     unsigned int projectionLocTex = glGetUniformLocation(textureShader, "uP");
@@ -589,12 +579,10 @@ int main(void)
         if (zoomIn) {
             vec3 zoomDirection = normalize(cameraTarget - cameraPos);
             cameraPos += zoomDirection * zoomSpeed;
-            //rocketCameraPos += zoomDirection * zoomSpeed;//NA KRAJU ZAKOMENTARISI
         }
         else if (zoomOut) {
             vec3 zoomDirection = normalize(cameraTarget - cameraPos);
             cameraPos -= zoomDirection * zoomSpeed;
-            //rocketCameraPos -= zoomDirection * zoomSpeed;//NA KRAJU ZAKOMENTARISI
         }
         vec3 direction = cameraTarget - cameraPos;
         mat4 rotationMatrix = rotate(mat4(1.0f), cameraAngle, vec3(0.0f, 1.0f, 0.0f));
@@ -676,8 +664,6 @@ int main(void)
                 rockets[rocketsLeft].z = baseCenterZ;
                 rockets[rocketsLeft].isFlying = true;
                 rockets[rocketsLeft].targetHelicopter = selectedHel;
-
-
 
                 // Postavi početni smer ka helikopteru
                 float targetX = helicopterPositions[selectedHel].x;
@@ -792,7 +778,6 @@ int main(void)
 
                 model3D = translate(model3D, vec3(rockets[i].x, rockets[i].y, rockets[i].z));
                 
-                //model3D = rotate(model3D, (float)radians(90.0f), vec3(1.0, 0.0, 0.0));
                 model3D = scale(model3D, vec3(0.05f));
                 glUniform3f(colorLoc, 1.0, 0.0, 0.0);
                 glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3D));
@@ -817,7 +802,7 @@ int main(void)
         // Renderovanje helikoptera --------------------------------------------------------------------------
         glUseProgram(baseShader);
 
-        glm::vec3 lightColor = glm::vec3(0.0f, 1.0f, 0.0f); // Zelena boja
+        glm::vec3 lightColor = glm::vec3(0.3f, 1.0f, 0.3f); // Zelena boja
         //float lightIntensity = 1.0f; // Intenzitet svetla
         //float lightCutoff = 0.7f; // Domet svetla
 
@@ -844,8 +829,8 @@ int main(void)
 
             glUniform3fv(glGetUniformLocation(baseShader, lightPosUniform.c_str()), 1, &helicopterPosition[0]);
             glUniform3fv(glGetUniformLocation(baseShader, lightColorUniform.c_str()), 1, &lightColor[0]);
-            glUniform1f(glGetUniformLocation(baseShader, lightIntensityUniform.c_str()), 1.0f);
-            glUniform1f(glGetUniformLocation(baseShader, lightCutoffUniform.c_str()), 0.7f);
+            glUniform1f(glGetUniformLocation(baseShader, lightIntensityUniform.c_str()), 0.5f);
+            glUniform1f(glGetUniformLocation(baseShader, lightCutoffUniform.c_str()), 0.8f);
 
             glBindVertexArray(0);
             if (checkCollision(helicopterPositions[i].x, helicopterPositions[i].y, helicopterPositions[i].z, cityCenterX, cityCenterY, cityCenterZ)) {
@@ -1087,13 +1072,11 @@ int main(void)
             // Renderovanje raketa rocket cam --------------------------------------------------------------------------------
             for (int i = 0; i < 10; ++i) {
                 if (rockets[i].isFlying) {
-                    //cout << i << endl;
                     glBindVertexArray(rocketVAO);
                     mat4 model3D = mat4(1.0f);
 
                     model3D = translate(model3D, vec3(rockets[i].x, rockets[i].y, rockets[i].z));
 
-                    //model3D = rotate(model3D, (float)radians(90.0f), vec3(1.0, 0.0, 0.0));
                     model3D = scale(model3D, vec3(0.05f));
                     glUniform3f(colorLoc, 1.0, 0.0, 0.0);
                     glUniformMatrix4fv(modelLocBase, 1, GL_FALSE, value_ptr(model3D));
@@ -1261,11 +1244,9 @@ void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
             baseCenterZ = (float)(1.0 - 2.0 * mouseY / height);
             if (baseCenterX >= -1 && baseCenterX <= -0.5 && baseCenterZ >= 0.5 && baseCenterZ <= 1.0) { // samo ako smo kliknuli u gornji levi ugao ekrana
                 baseCenterSet = true; // Centar je postavljen
-                //baseCenterX = -baseCenterX;
             }
             baseCenterX = -(baseCenterX * 4 + 3);
             baseCenterZ = baseCenterZ * 4 - 3;
-            cout << baseCenterX << " " << baseCenterZ << endl;
         }
 
         // Ako je baza već postavljena, postavi cityCenter
@@ -1274,11 +1255,9 @@ void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
             cityCenterZ = (float)(1.0 - 2.0 * mouseY / height);
             if (cityCenterX >= -1 && cityCenterX <= -0.5 && cityCenterZ >= 0.5 && cityCenterZ <= 1.0) {
                 cityCenterSet = true;  // Postavljamo da je city center postavljen
-                //cityCenterX = -cityCenterX;
             }
             cityCenterX = -(cityCenterX * 4 + 3);
             cityCenterZ = cityCenterZ * 4 - 3;
-            cout << cityCenterX << " " << cityCenterZ << endl;
         }
     }
 }
@@ -1341,7 +1320,6 @@ void renderMountain(unsigned int baseShader, unsigned int mountainVAO, unsigned 
 
 void renderClouds(unsigned int baseShader, unsigned int cloud1VAO, bool& hasTexture, int& colorLoc, unsigned int modelLocBase, ModelData& cloud1)
 {
-    // Renderovanje 1. oblaka ------------------------------------------------------------------------------
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glUseProgram(baseShader);
